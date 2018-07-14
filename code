@@ -1,0 +1,193 @@
+<html>
+<canvas id = "gameCanvas" width = "800" height = "600"></canvas>
+<script>
+var canvas;
+var canvasContext;
+
+var ballX = 390; 								// this line gives the initial position in the x axis for the ball
+var ballSpeedX = 5;							// this line creates the var for how many pixels the ball moves by in the x axis
+
+var ballY = 290;								// this line gives the initial position in the y axis for the ball
+var ballSpeedY = 0;							// this line creates the var for how many pixels the ball moves by in the y axis
+				
+const PADDLE_HEIGHT = 100;						// this line creates a constant in which we can base things in the future around
+const PADDLE_WIDTH = 10;
+var paddle1Y = 250;							// this line sets the initial position in the y axis for the paddle on the left side
+var paddle2Y = 250;							// this line sets the initial position in the y axis for the paddle on the right side
+
+var player1Score = 0;
+var player2Score = 0;
+const WINNING_SCORE = 3;
+var showWinScreen = false;
+
+function calculateMousePos(evt)						// created a function to detect where the mouse is moving
+{
+	var rect = canvas.getBoundingClientRect();				// gets the black rectangle from the screen
+	var root = document.documentElement;			
+	var mouseX = evt.clientX - rect.left - root.scrollLeft;			// gets the diff in how much the mouse moved in terms of the x axis
+	var mouseY = evt.clientY - rect.top - root.scrollTop;			// gets the diff in how much the mouse moved in terms of the y axis
+	return{
+		x:mouseX	,						// returns the mouseX value in the variable x
+		y:mouseY							// returns the mouseY value in the variable y
+	};
+}
+
+function handleMouseClick (evt)
+{
+	if (showWinScreen == true)						// once they click the screen, it resets score and changes showWinScreen to false
+	{
+		player1Score = 0;
+		player2Score = 0;
+		showWinScreen = false;
+	}
+}
+window.onload = function()
+{
+	canvas = document.getElementById('gameCanvas');			// gets the canvas width and height
+	canvasContext = canvas.getContext('2d');
+
+	var framesPerSecond = 30;
+	setInterval (function ()						// this block of code tells the program to repeat it every 1000 millisec/framesPerSecond
+	{
+		drawEverything ();
+		moveBall ();
+	}, 1000/framesPerSecond);	
+
+	canvas.addEventListener('mousedown', handleMouseClick);
+	
+	canvas.addEventListener('mousemove',				// this function addEventListener checks if there was a mousedown or keypress or mousemove
+	 	function (evt)						// and everytime it detects the mousemove, it calls the function
+		{	
+			var mousePos = calculateMousePos(evt);		// created the var to hold the return value of the function calculateMousePos
+			paddle1Y = mousePos.y - (PADDLE_HEIGHT/2);		// gives the y value of the mousePos to the var paddle1Y
+		}
+	);
+}
+
+function resetBall ()							// created a function to reset the ball once it hits the border on either left or right
+{
+	if (player1Score >= WINNING_SCORE || player2Score >= WINNING_SCORE)
+	{
+		showWinScreen = true;
+	}
+	ballX = canvas.width/2;						// sets the ball's x coordinate in the middle
+	ballY = canvas.height/2; 						// sets the ball's y coordinate in the middle 
+	ballSpeedX = ballSpeedX;						// changes the direction of the ball
+	ballSpeedY = 0;
+}
+
+function computerMovement() 						// function for the computer's paddle movement
+{
+	var paddle2YCenter = paddle2Y + (PADDLE_HEIGHT/2); 			// created a variable for the center of the paddle
+	if (paddle2YCenter < ballY - 35)					// if the center of the paddle is less than the ball's position + 35
+		paddle2Y += 4;						// then it goes up 4 pixels to catch up to the ball
+	else if (paddle2YCenter > ballY + 35)					// if the center of the paddle is more than the balls position - 35
+		paddle2Y -= 4;						// then it goes down 4 pixels to catch up to the ball 
+}
+
+function moveBall ()
+{
+	computerMovement();
+	if (showWinScreen == true)
+	{
+		return;
+	}
+	ballX += ballSpeedX;						// this line makes the ball move its position in the x axis
+	ballY += ballSpeedY; 						// this line makes the ball move its position in the y axis
+	if (ballX < 0)							// checks if the ball has hit the left border and if it has, then resets the ball
+	{
+		if (ballY > paddle1Y && ballY < (paddle1Y + PADDLE_HEIGHT))	// if the ball has hit anywhere between the top and the bottom of the paddle,
+		{							// then it changes direction
+			ballSpeedX = -ballSpeedX;
+			var deltaY = ballY - (paddle1Y + (PADDLE_HEIGHT/2));
+			ballSpeedY = deltaY * 0.35;
+		}
+		else							
+		{
+			player2Score ++;					// the opponent gains a point if the player is not able to rebound the ball in time
+			resetBall();					// if the player has not won, then the ball's position is reset to the middle 
+		}									
+	}
+	if (ballX > canvas.width - PADDLE_WIDTH)				// checks if the ball has hit the right border and if it has, then resets the ball
+	{
+		if (ballY > paddle2Y && ballY < (paddle2Y + PADDLE_HEIGHT))	// if the ball has hit anywhere between the top and the bottom of the paddle,
+		{							// then it changes direction
+			ballSpeedX = -ballSpeedX;
+			var deltaY = ballY - (paddle2Y + (PADDLE_HEIGHT/2));
+			ballSpeedY = deltaY * 0.35;
+		}
+		else							
+		{
+			player1Score ++;					// the opponent gains a point if the player is not able to rebound the ball in time
+			resetBall();					// if it isn't touching the paddle, then the ball's position is reset to the middle 
+		}
+	}
+	if (ballY < 0 + 10)							// checks if the ball has hit the top border and if it has, then changes direction
+	{
+		ballSpeedY = -ballSpeedY;
+	}
+	if (ballY > canvas.height - 10)					// checks if the ball has hit the bottom border and if it has, then changes direction
+	{
+		ballSpeedY = -ballSpeedY;
+	}
+}
+
+function drawNet ()
+{
+	for (var i = 0; i < canvas.height; i += 40)
+	{
+		colourRect(400, i, 6, 20, 'white');
+	}
+}
+
+function drawEverything ()
+{
+	
+	colourRect(0, 0, canvas.width, canvas.height, 'black'); 					// this line calls the function to create a black background canvas
+
+	if (showWinScreen == true)								// check if any player has won
+	{
+		if (player1Score >= WINNING_SCORE)						// if Player 1 has won, it shows an acknowledgment screen
+		{
+			canvasContext.fillStyle = ('yellow');
+			canvasContext.fillText("Congratulations, Player 1 Wins!", 350, 250);
+		}
+		else if (player2Score >= WINNING_SCORE)					// if Player 2 has won, it shows an acknowledgement screen
+		{
+			canvasContext.fillStyle = ('yellow');
+			canvasContext.fillText("Congratulations, Player 2 Wins!", 350, 250);
+		}
+		canvasContext.fillStyle = 'white';
+		canvasContext.fillText("Click to Continue", 375, 500);				// gives the choice to Player if they want to have a rematch
+		return;									// leaves the if statement 
+	}
+	
+	drawNet();
+
+	colourRect(0, paddle1Y, PADDLE_WIDTH, PADDLE_HEIGHT, 'red');				// this line calls the function to create a red paddle on the left side
+
+	colourRect(canvas.width - PADDLE_WIDTH, paddle2Y, PADDLE_WIDTH, PADDLE_HEIGHT, 'blue');	// this line calls the function to create a blue paddle on the right side
+		
+	colourCircle(ballX, ballY, 10, 'white');							// this line calls the function to draw the ball
+
+	canvasContext.fillText( player1Score, 0 + 100,100);					// this line displays the score of Player 1
+	canvasContext.fillText( player2Score, canvas.width - 100,100);				// this line displays the score of Player 2
+	
+}
+
+function colourCircle (centerX, centerY, radius, drawColour)			// function to draw the ball
+{
+	canvasContext.fillStyle = drawColour;					// this block of code creates a small ball move across the screen
+	canvasContext.beginPath()
+	canvasContext.arc(centerX, centerY, radius, 0, Math.PI*2, true);   		// the parameters are x coordinate, y coordinate, radius, beginning radian of the circle,
+	canvasContext.fill();			                           		// end radian, (true) draw it clockwise or (false) draw it counter clockwise
+}
+
+function colourRect (leftX, topY, width, height, drawColour) 			// draws in the parameters which gives the values a variable respectiviely
+{
+	canvasContext.fillStyle = drawColour;					// this line gives the colour which it requests from the previous function
+	canvasContext.fillRect(leftX, topY, width, height);			// this line places that object filled with the colour at the position
+}
+
+</script>
+</html>
